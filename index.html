@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bs">
+<html lang="bs" class="locked">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
@@ -396,6 +396,10 @@
 
     @keyframes fadeIn   { from{opacity:0;transform:translateY(15px)} to{opacity:1;transform:translateY(0)} }
     @keyframes fadeDown { from{opacity:0;transform:translateY(-15px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── SCROLL LOCK dok se pozivnica ne otvori ── */
+    html.locked, html.locked body { overflow: hidden !important; height: 100%; touch-action: none; overscroll-behavior: none; }
+    html.locked #mobile-site { overflow: hidden !important; }
   </style>
 </head>
 <body>
@@ -616,6 +620,25 @@
   </div><!-- /#mobile-site -->
 
   <script>
+    /* ── SCROLL LOCK ── */
+    const rootEl = document.documentElement;
+    const blockScroll = e => e.preventDefault();
+    function lockScroll() {
+      rootEl.classList.add('locked');
+      window.scrollTo(0, 0);
+      ['wheel','touchmove'].forEach(t => window.addEventListener(t, blockScroll, { passive: false }));
+      window.addEventListener('keydown', blockKeys);
+    }
+    function blockKeys(e) {
+      if ([' ','PageDown','PageUp','ArrowDown','ArrowUp','Home','End'].includes(e.key)) e.preventDefault();
+    }
+    function unlockScroll() {
+      rootEl.classList.remove('locked');
+      ['wheel','touchmove'].forEach(t => window.removeEventListener(t, blockScroll));
+      window.removeEventListener('keydown', blockKeys);
+    }
+    lockScroll();
+
     /* ── ENVELOPE LOADER ── */
     const envelopeLoader = document.getElementById('envelopeLoader');
     const envelopeImg    = document.getElementById('envelopeImg');
@@ -632,12 +655,14 @@
           envelopeLoader.style.transition = 'opacity 1.0s ease';
           envelopeLoader.style.opacity    = '0';
           envelopeLoader.style.pointerEvents = 'none';
+          unlockScroll();
         }, 1400);
         setTimeout(dismissLoader, 3400);
       }, { once: true });
     });
 
     function dismissLoader() {
+      unlockScroll();
       if (envelopeLoader && envelopeLoader.parentNode) envelopeLoader.remove();
     }
 
