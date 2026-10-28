@@ -23,6 +23,27 @@
       --text-light: rgba(255,255,255,0.92);
     }
 
+    html,
+    body {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    #mobile-site {
+      scrollbar-width: none;
+    }
+
+    #mobile-site::-webkit-scrollbar {
+      display: none;
+    }
+
     html {
       scroll-behavior: smooth;
       overflow-x: hidden;
