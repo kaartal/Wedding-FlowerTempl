@@ -1042,8 +1042,9 @@
     gateOpen = true;
     held.forEach(function (el) {
       el.muted = el._origMuted;
+      if (/^blob:/.test(el.currentSrc || el.src)) { try { el.currentTime = 0; } catch (e) {} }
       var t = el.volume;
-      if (t > 0 && !el.muted) ramp(el, t, 2200);
+      if (t > 0 && !el.muted) ramp(el, t, 900);
     });
     openResolve();
   }
@@ -1272,13 +1273,14 @@
       const loader = document.getElementById('pageLoader');
       const bar = document.getElementById('plBar');
       const CIRC = 100;
-      const tasks = { fonts: false, image: false, video: false };
+      const tasks = { fonts: false, image: false, video: false, music: false };
       const t0 = performance.now();
       const MIN_MS = 700, MAX_MS = 12000; // loader nikad ne traje duže od 12s
       let shown = 0, closing = false;
 
       const done = k => { tasks[k] = true; };
       window.__envReadyResolve = () => done('video'); // javlja kod koji skida video otvaranja
+      window.__musicReadyResolve = () => done('music'); // javlja kod koji skida muziku
 
       Promise.race([
         (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve(),
@@ -1307,8 +1309,8 @@
       function tick() {
         const elapsed = performance.now() - t0;
         const finished = Object.values(tasks).filter(Boolean).length;
-        const allDone = finished === 3;
-        const target = allDone ? 100 : Math.min(finished * 27 + 12, 92);
+        const allDone = finished === 4;
+        const target = allDone ? 100 : Math.min(finished * 20 + 12, 92);
         shown += (target - shown) * 0.07 + (shown < target ? 0.08 : 0);
         if (shown > target) shown = target;
         render(shown);
@@ -1356,6 +1358,20 @@
         })
         .catch(() => { warm(v); if (onFail) onFail(); if (done) done(); });
     }
+    let warmedMusic = false;
+    function warmMusic(next) {
+      const ready = () => { if (window.__musicReadyResolve) window.__musicReadyResolve(); };
+      if (warmedMusic) { if (next) next(); return; }
+      warmedMusic = true;
+      const a = document.getElementById('bgMusic');
+      if (!a) { ready(); if (next) next(); return; }
+      const sEl = a.querySelector('source');
+      a.addEventListener('canplaythrough', ready, { once: true });
+      a.addEventListener('canplay', ready, { once: true });
+      a.addEventListener('loadeddata', ready, { once: true });
+      // muzika u memoriji: na dodir krene odmah, a postaje čujna čim krene video
+      loadAsBlob(a, sEl ? sEl.getAttribute('src') : a.getAttribute('src'), () => { setTimeout(ready, 800); if (next) next(); }, ready);
+    }
     let warmedHero = false;
     function warmHero() {
       if (warmedHero || !heroVidEl) return; warmedHero = true;
@@ -1375,8 +1391,8 @@
       envelopeVideo.addEventListener('canplay', envIsReady, { once: true });
       envelopeVideo.addEventListener('loadeddata', envIsReady, { once: true });
       // video je već u memoriji (blob) — telefon ga može pokrenuti odmah čak i ako ne javi 'canplay'
-      loadAsBlob(envelopeVideo, envelopeVideo.getAttribute('src'), () => { warmHero(); setTimeout(envIsReady, 800); }, envIsReady);
-      setTimeout(warmHero, 3500);
+      loadAsBlob(envelopeVideo, envelopeVideo.getAttribute('src'), () => { setTimeout(envIsReady, 800); warmMusic(warmHero); }, envIsReady);
+      setTimeout(() => { warmMusic(); warmHero(); }, 3500);
     }
     if (envelopeImg.complete) warmEnv();
     else { envelopeImg.addEventListener('load', warmEnv, { once: true }); envelopeImg.addEventListener('error', warmEnv, { once: true }); }
