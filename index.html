@@ -4,7 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Viktor & Paula – Dan Vjenčanja</title>
-  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="image" href="Images/V&P.png" fetchpriority="high">
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet" /></noscript>
   <style>
     *,
     *::before,
@@ -202,6 +206,7 @@
     }
 
     #hero {
+      background-color: #3a0c1a;
       position: relative;
       width: 100%;
       height: 100svh;
@@ -1014,6 +1019,64 @@
       overflow: hidden !important;
     }
   </style>
+<script id="_musicgate">
+(function () {
+  // Muzika postaje čujna tek kad video stvarno krene.
+  // Na dodir se muzika pokrene tiho (da je telefon dopusti), a zvuk se uključuje kad video krene.
+  var gateOpen = false, held = [], openResolve;
+  var gateDone = new Promise(function (r) { openResolve = r; });
+  var origPlay = HTMLMediaElement.prototype.play;
+  var timerSet = false;
+
+  function ramp(el, target, ms) {
+    var steps = 30, i = 0;
+    try { el.volume = 0; } catch (e) {}
+    var t = setInterval(function () {
+      i++;
+      try { el.volume = Math.min(target, target * i / steps); } catch (e) {}
+      if (i >= steps) clearInterval(t);
+    }, ms / steps);
+  }
+  function open() {
+    if (gateOpen) return;
+    gateOpen = true;
+    held.forEach(function (el) {
+      el.muted = el._origMuted;
+      var t = el.volume;
+      if (t > 0 && !el.muted) ramp(el, t, 2200);
+    });
+    openResolve();
+  }
+  function isOpenVideo(el) { return el.id === 'envelopeVideo' || el.id === 'splash-video'; }
+
+  HTMLMediaElement.prototype.play = function () {
+    var el = this, a = arguments;
+    if (el instanceof HTMLAudioElement && !gateOpen) {
+      if (!el._gateP) el._origMuted = el.muted;
+      el.muted = true;
+      var p = origPlay.apply(el, a);
+      if (!el._gateP) {
+        el._gateP = Promise.resolve(p).then(function () { return gateDone; })
+          .catch(function (e) { el._gateP = null; throw e; });
+        held.push(el);
+        if (!timerSet) { timerSet = true; setTimeout(open, 7100); }
+      }
+      return el._gateP;
+    }
+    var r = origPlay.apply(el, a);
+    if (isOpenVideo(el) && r && r.catch) r.catch(open);
+    return r;
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var v = document.getElementById('envelopeVideo') || document.getElementById('splash-video');
+    if (!v) { open(); return; }
+    v.addEventListener('playing', open, { once: true });
+    v.addEventListener('error', open, { once: true });
+    v.addEventListener('ended', open, { once: true });
+  });
+})();
+</script>
 </head>
 <body>
 
@@ -1027,13 +1090,13 @@
       </div>
     </div>
 
-    <audio id="bgMusic" loop preload="auto">
+    <audio id="bgMusic" loop preload="none">
   <source src="Song/Bradbury Lane - Look In Those Eyes Forever.mp3" type="audio/mpeg">
 </audio>
 
     <div id="envelopeLoader">
-      <img id="envelopeImg" src="Images/V&P.png" alt="" />
-      <video id="envelopeVideo" src="Images/OpenEnvelope.mp4" muted playsinline preload="auto"></video>
+      <img id="envelopeImg" fetchpriority="high" decoding="async" src="Images/V&P.png" alt="" />
+      <video id="envelopeVideo" src="Images/OpenEnvelope.mp4" muted playsinline preload="none"></video>
       <div id="envHint">
         <p>Klikni za otvaranje</p>
       </div>
@@ -1061,7 +1124,7 @@
 ">🔊</button>
 
     <section id="hero">
-      <video id="hero-video" autoplay muted loop playsinline>
+      <video id="hero-video" muted loop playsinline preload="none">
         <source src="Images/hero.mp4" type="video/mp4">
       </video>
       <div class="hero-overlay"></div>
@@ -1101,13 +1164,13 @@
     height: 130px;
     max-width: 425px;
     margin: 0 auto;">
-   <img class="f-img f-mid-2" src="Images/1.png.webp"     style="max-width: 210px;
+   <img loading="lazy" decoding="async" class="f-img f-mid-2" src="Images/1.png.webp"     style="max-width: 210px;
     width: 60%;  position:absolute;     bottom: -150px; left: -100px;     z-index: 1;" alt="" />
-      <img class="f-img f-left"  src="Images/4.png"  style="    max-width: 200px;
+      <img loading="lazy" decoding="async" class="f-img f-left"  src="Images/4.png"  style="    max-width: 200px;
     width: 47%;position: absolute;  bottom: -150px; left: 29px;" alt="" />
-      <img class="f-img f-mid-l" src="Images/1.png.webp"  style="      max-width: 222px;
+      <img loading="lazy" decoding="async" class="f-img f-mid-l" src="Images/1.png.webp"  style="      max-width: 222px;
     width: 56%; position: absolute; bottom: -150px; right: 18px;" alt="" />
-      <img class="f-img f-right" src="Images/4.png"  style="    max-width: 220px;
+      <img loading="lazy" decoding="async" class="f-img f-right" src="Images/4.png"  style="    max-width: 220px;
     width: 54%; position:absolute;  bottom: -150px; right: -100px;" alt="" />
       </div>
     </section>
@@ -1149,7 +1212,7 @@
       <h3 class="reveal">Chateau de Paon</h3>
       <address class="reveal">Adresa: Petit Chemin de Saint-Gilles<br>13200 Arles, Francuska</address>
       <div class="location-img reveal">
-        <img src="Images/image-gen_1-Photoroo.png.png" alt="Chateau de Paon" />
+        <img loading="lazy" decoding="async" src="Images/image-gen_1-Photoroo.png.png" alt="Chateau de Paon" />
       </div>
     </section>
 
@@ -1164,11 +1227,11 @@
       </div>
       <div class="dress-frames">
         <div class="frame-card frame-card-left reveal">
-          <img src="Images/Group_169.png-removebg-preview.png" alt="Gospoda oblačenje" />
+          <img loading="lazy" decoding="async" src="Images/Group_169.png-removebg-preview.png" alt="Gospoda oblačenje" />
           <p class="frame-label"><strong>Gospoda:</strong><br>Preferiraju se dobro skrojena odijela s klasičnim cipelama.</p>
         </div>
         <div class="frame-card frame-card-right reveal">
-          <img src="Images/Gemini_Generated_Image_256s7p256s7p256s__1_-removebg-preview.png" alt="Dame oblačenje" />
+          <img loading="lazy" decoding="async" src="Images/Gemini_Generated_Image_256s7p256s7p256s__1_-removebg-preview.png" alt="Dame oblačenje" />
           <p class="frame-label"><strong>Dame:</strong><br>Preporučuju se formalne haljine u elegantnim, dotjeranim stilovima.</p>
         </div>
       </div>
@@ -1192,13 +1255,13 @@
     height: 130px;
     max-width: 425px;
     margin: 0 auto;">
-   <img class="f-img f-mid-2" src="Images/1.png.webp"     style="max-width: 210px;
+   <img loading="lazy" decoding="async" class="f-img f-mid-2" src="Images/1.png.webp"     style="max-width: 210px;
     width: 60%;  position:absolute;     bottom: -150px; left: -100px;     z-index: 1;" alt="" />
-      <img class="f-img f-left"  src="Images/4.png"  style="    max-width: 200px;
+      <img loading="lazy" decoding="async" class="f-img f-left"  src="Images/4.png"  style="    max-width: 200px;
     width: 47%;position: absolute;  bottom: -150px; left: 29px;" alt="" />
-      <img class="f-img f-mid-l" src="Images/1.png.webp"  style="      max-width: 222px;
+      <img loading="lazy" decoding="async" class="f-img f-mid-l" src="Images/1.png.webp"  style="      max-width: 222px;
     width: 56%; position: absolute; bottom: -150px; right: 18px;" alt="" />
-      <img class="f-img f-right" src="Images/4.png"  style="    max-width: 220px;
+      <img loading="lazy" decoding="async" class="f-img f-right" src="Images/4.png"  style="    max-width: 220px;
     width: 54%; position:absolute;  bottom: -150px; right: -100px;" alt="" />
       </div>
 
@@ -1216,7 +1279,7 @@
         <span class="footer-names reveal">Viktor i Paula</span>
       </div>
       <div class="footer-photo reveal">
-        <img src="Images/pexels-ardaozturk-31888283.jpg" alt="Viktor i Paula" />
+        <img loading="lazy" decoding="async" src="Images/pexels-ardaozturk-31888283.jpg" alt="Viktor i Paula" />
       </div>
     </footer>
 
@@ -1226,25 +1289,22 @@
       const loader = document.getElementById('pageLoader');
       const bar = document.getElementById('plBar');
       const CIRC = 100;
-      const tasks = { fonts: false, image: false, video: false, page: false };
+      const tasks = { fonts: false, image: false };
       const t0 = performance.now();
-      const MIN_MS = 1500, MAX_MS = 9000;
+      const MIN_MS = 700, MAX_MS = 4000;
       let shown = 0, closing = false;
 
       const done = k => { tasks[k] = true; };
 
-      document.fonts && document.fonts.ready ? document.fonts.ready.then(() => done('fonts')) : done('fonts');
+      Promise.race([
+        (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve(),
+        new Promise(r => setTimeout(r, 1000))
+      ]).then(() => done('fonts'));
 
       const img = document.getElementById('envelopeImg');
       if (img.complete) done('image');
       else { img.addEventListener('load', () => done('image')); img.addEventListener('error', () => done('image')); }
 
-      const vid = document.getElementById('envelopeVideo');
-      if (vid.readyState >= 3) done('video');
-      else ['canplaythrough', 'loadeddata', 'error', 'stalled'].forEach(ev => vid.addEventListener(ev, () => done('video'), { once: true }));
-
-      if (document.readyState === 'complete') done('page');
-      else window.addEventListener('load', () => done('page'));
 
       function render(p) {
         bar.style.strokeDashoffset = CIRC * (1 - p / 100);
@@ -1263,8 +1323,8 @@
       function tick() {
         const elapsed = performance.now() - t0;
         const finished = Object.values(tasks).filter(Boolean).length;
-        const allDone = finished === 4;
-        const target = allDone ? 100 : Math.min(finished * 25 + 12, 92);
+        const allDone = finished === 2;
+        const target = allDone ? 100 : Math.min(finished * 40 + 12, 92);
         shown += (target - shown) * 0.07 + (shown < target ? 0.08 : 0);
         if (shown > target) shown = target;
         render(shown);
@@ -1297,10 +1357,43 @@
     const envelopeVideo  = document.getElementById('envelopeVideo');
     const envHint        = document.getElementById('envHint');
 
+    // Videi se skidaju redom u pozadini: prvo video otvaranja, zatim hero
+    const heroVidEl = document.getElementById('hero-video');
+    function warm(v) { try { v.preload = 'auto'; v.load(); } catch (e) {} }
+    let warmedHero = false;
+    function warmHero() { if (warmedHero || !heroVidEl) return; warmedHero = true; warm(heroVidEl); }
+    let warmedEnv = false;
+    function warmEnv() {
+      if (warmedEnv) return; warmedEnv = true;
+      warm(envelopeVideo);
+      envelopeVideo.addEventListener('canplaythrough', warmHero, { once: true });
+      setTimeout(warmHero, 2500);
+    }
+    if (envelopeImg.complete) warmEnv();
+    else { envelopeImg.addEventListener('load', warmEnv, { once: true }); envelopeImg.addEventListener('error', warmEnv, { once: true }); }
+
+    let opening = false;
     envelopeLoader.addEventListener('click', () => {
+      if (opening) return;
+      opening = true;
       envHint.style.opacity = '0';
-      envelopeVideo.play().catch(() => { dismissLoader(); });
+      const hv = document.getElementById('hero-video');
+      if (hv) hv.play().catch(() => {});
+
+      let started = false;
+      // Ako se video ne pokrene (spor internet, štednja baterije, greška) — svejedno otvori pozivnicu
+      function fallbackOpen() {
+        if (started) return;
+        started = true;
+        envelopeLoader.style.transition = 'opacity 0.6s ease';
+        envelopeLoader.style.opacity    = '0';
+        envelopeLoader.style.pointerEvents = 'none';
+        unlockScroll();
+        setTimeout(dismissLoader, 650);
+      }
       envelopeVideo.addEventListener('playing', () => {
+        if (started) return;
+        started = true;
         envelopeVideo.style.opacity = '1';
         setTimeout(() => { envelopeImg.style.opacity = '0'; }, 300);
         setTimeout(() => {
@@ -1311,6 +1404,9 @@
         }, 1400);
         setTimeout(dismissLoader, 3400);
       }, { once: true });
+      envelopeVideo.addEventListener('error', fallbackOpen, { once: true });
+      envelopeVideo.play().catch(fallbackOpen);
+      setTimeout(fallbackOpen, 7000);
     });
 
     function dismissLoader() {
@@ -1368,12 +1464,13 @@
 
     envelopeLoader.addEventListener('click', () => {
       music.volume = 0.4;
-      music.play().catch(() => {});
+      music.play().catch(() => { muted = true; muteBtn.textContent = '🔇'; });
     }, { once: true });
 
     function toggleMute() {
       muted = !muted;
       music.muted = muted;
+      if (!muted && music.paused) music.play().catch(() => {});
       muteBtn.textContent = muted ? '🔇' : '🔉';
     }
   </script>
